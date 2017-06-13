@@ -1,0 +1,5 @@
+<tr>
+    <td class="col-md-2"><a href="{{ url_for('all_products_list', dealer=dealer.name) }}">{{dealer.name}}</a></td>
+    <td class="col-md-2">Liczba zaniżonych aukcji: <a href="{{ url_for('products_list', dealer=dealer.name) }}">{{dealer.count_bad_auctions()}}</a></td>
+    <td class="col-md-2">Liczba aukcji ogółem: <a href="{{ url_for('all_products_list', dealer=dealer.name) }}">{{ dealer.count_auctions() }}</a></td>
+</tr>

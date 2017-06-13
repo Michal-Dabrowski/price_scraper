@@ -1,0 +1,39 @@
+{% extends 'scraper.html' %}
+{% block content %}
+
+<div class="container">
+	<div class="row">
+		<div class="box-body no-padding">
+            <hr>
+
+            <div class="panel panel-default">
+                <!-- Default panel contents -->
+                <div class="panel-heading"><center>Informacje szczegółowe</center></div>
+                <div class="panel-body">
+                    <p><center>Istnieje możliwość błędnego wykrycia produktu przez system. Jeśli wykryty produkt nie zgadza się
+                    z produktem sprzedawanym na aukcji, ceny będą błędnie obliczane.</center></p>
+                </div>
+                <!-- Table -->
+                <table class="table">
+
+                    {% for product in products %}
+
+                    <tr>
+                        <td>{{product[0]}}</td>
+                        <td>{{ product[1] }}</td>
+                    </tr>
+
+                    {% endfor %}
+
+                </table>
+                </div>
+            </div>
+        </div>
+    </div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}

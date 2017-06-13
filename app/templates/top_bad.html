@@ -1,0 +1,26 @@
+{% extends "scraper.html" %}
+
+{% block content %}
+<div class="container">
+	<div class="row">
+		<div class="box-body no-padding">
+            <hr>
+
+            <div class="panel panel-default">
+                <!-- Default panel contents -->
+
+<table class="table">
+    <tr>
+        <td>{% include 'dealer_pie_chart_allegro.html' %}</td>
+        <td><img src="/static/files/allegro.jpg" width="200"></td>
+    </tr>
+    <tr>
+        <td>{% include 'dealer_pie_chart_ceneo.html' %}</td>
+        <td><img src="/static/files/ceneo.png" width="200"></td>
+    </tr>
+</table>
+</div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

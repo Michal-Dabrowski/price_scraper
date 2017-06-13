@@ -1,0 +1,42 @@
+<!-- extend base layout -->
+{% extends "scraper.html" %}
+
+{% block content %}
+
+<div class="panel panel-default">
+    <!-- Default panel contents -->
+    {% if source == 'allegro' %}
+    <div class="panel-heading"><center><b>ALLEGRO</b></center></div>
+    {% elif source == 'ceneo' %}
+    <div class="panel-heading"><center><b>CENEO</b></center></div>
+    {% endif %}
+    <table class="table">
+        <tbody>
+
+        {% if source == 'allegro' %}
+        {% for dealer in dealers %}
+            <tr>
+                <td class="col-md-2"><a href="{{ url_for('all_products_list', source='allegro', dealer=dealer.name) }}">{{dealer.name}}</a></td>
+                <td class="col-md-2">Oferty poniżej sugerowanej: <a href="{{ url_for('products_list', source='allegro', dealer=dealer.name) }}">{{dealer.count_bad_auctions()}}</a></td>
+                <td class="col-md-2">Oferty ogółem: <a href="{{ url_for('all_products_list', source='allegro', dealer=dealer.name) }}">{{ dealer.count_auctions() }}</a></td>
+            </tr>
+        {% endfor %}
+        {% endif %}
+
+        {% if source == 'ceneo' %}
+        {% for dealer in dealers %}
+            <tr>
+                <td class="col-md-2"><a href="https:////www.{{dealer.name}}">{{dealer.name}}</a></td>
+                <td class="col-md-2">Oferty poniżej sugerowanej: <a href="{{ url_for('products_list', source='ceneo', dealer=dealer.name) }}">{{dealer.count_bad_auctions()}}</a></td>
+                <td class="col-md-2">Oferty ogółem: <a href="{{ url_for('all_products_list', source='ceneo', dealer=dealer.name) }}">{{ dealer.count_auctions() }}</a></td>
+            </tr>
+        {% endfor %}
+        {% endif %}
+
+        {% include 'dealer_data_chart.html' %}
+
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

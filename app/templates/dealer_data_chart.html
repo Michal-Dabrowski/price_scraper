@@ -1,0 +1,30 @@
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<div id="chart_div"></div>
+
+
+<script type='text/javascript'>
+google.charts.load('current', {packages: ['corechart', 'line']});
+google.charts.setOnLoadCallback(drawCurveTypes);
+
+function drawCurveTypes() {
+      var data = new google.visualization.DataTable();
+      data.addColumn('string', 'Data');
+      data.addColumn('number', 'Poprawne oferty');
+      data.addColumn('number', 'Oferty poniżej ceny sugerowanej');
+      data.addColumn('number', 'Wszystkie oferty');
+
+      data.addRows({{ line_data|safe }});
+
+      var options = {
+
+        colors: ['green','red','blue'],
+        legend: {position: 'top', alignment: 'center'},
+        hAxis: {title: 'Data'},
+        vAxis: {title: 'Oferty'},
+        series: {1: {curveType: 'function'}}
+      };
+
+      var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+      chart.draw(data, options);
+    }
+</script>

@@ -1,0 +1,58 @@
+<!-- extend base layout -->
+{% extends 'scraper.html' %}
+
+{% block content %}
+
+<center>Statystyki dla:</center>
+<h2><center><b>{{ dealer }}</b></center></h2>
+<center>
+    {% if source == 'allegro' %}
+        <a href="{{ url_for('links', source='allegro', dealer=dealer) }}"><button type="button" class="btn btn-success btn-xs">Pokaż linki aukcji</button></a>
+    {% elif source == 'ceneo' %}
+        <a href="{{ url_for('links', source='ceneo', dealer=dealer) }}"><button type="button" class="btn btn-success btn-xs">Pokaż linki aukcji</button></a>
+    {% endif %}
+
+    {% include 'dealer_data_chart.html' %}
+
+</center>
+<div class="container">
+	<div class="row">
+		<div class="box-body no-padding">
+            <hr>
+
+            <div class="panel panel-default">
+                <!-- Default panel contents -->
+                <div class="panel-heading"><center>Informacje szczegółowe</center></div>
+                <div class="panel-body">
+                    <p><center>Istnieje możliwość błędnego wykrycia produktu przez system. Jeśli wykryty produkt nie zgadza się
+                    z produktem sprzedawanym na aukcji, ceny będą błędnie obliczane.</center></p>
+                </div>
+                <!-- Table -->
+                <table class="table">
+
+                    {% for product in products %}
+
+                    <tr>
+                        <td><a href="{{product.url}}">{{product.full_name}}</a><br>
+                            Wykryty produkt: {{ product.product_name }}<br>
+                        </td>
+
+                        <td>
+                            Cena na aukcji: {{product.price}}zł<br>
+                            Cena sugerowana: {{ product.suggested_price }}zł<br>
+                        <td>
+                            Różnica w cenie: <span class={% if product.percentage_decrease < 0 %}"label label-danger"{% else %}"label label-success"{% endif %}>{{ product.percentage_decrease }}%</span><br>
+                            Darmowa przesyłka: {% if product.free_shipping %} TAK {% else %} NIE {% endif %}
+                        <td>{{ product.timestamp_short }}</td>
+                    </tr>
+
+                    {% endfor %}
+
+                </table>
+            </div>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}
