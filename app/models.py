@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from app import db
 import pandas as pd
 from config import UPLOAD_FOLDER
@@ -5,6 +7,28 @@ from datetime import datetime
 import time
 import requests
 import json
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    login = db.Column(db.String(64), unique=True)
+    password = db.Column(db.String(64))
+    email = db.Column(db.String(64), unique=True)
+    active = db.Column(db.Boolean)
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return str(self.id)
 
 class Dealer(db.Model):
     id = db.Column(db.Integer, primary_key=True)

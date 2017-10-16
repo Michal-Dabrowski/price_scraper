@@ -29,25 +29,38 @@
                 </div>
                 <!-- Table -->
                 <table class="table">
-
-                    {% for product in products %}
-
                     <tr>
+                        <th>Pozycja</th>
+                        {% if search %}
+                            <th>Nazwa sklepu</th>
+                        {% endif %}
+                        <th>Nazwa produktu</th>
+                        <th>Ceny</th>
+                        <th>Różnica w cenie</th>
+                        <th>Data</th>
+                    </tr>
+                    {% for product in products %}
+                    <tr>
+                        <td>
+                            {{ loop.index }}
+                        </td>
+                        {% if search %}
+                        <td>
+                            {{ product.seller.name }}
+                        </td>
+                        {% endif %}
                         <td><a href="{{product.url}}">{{product.full_name}}</a><br>
                             Wykryty produkt: {{ product.product_name }}<br>
                         </td>
-
                         <td>
                             Cena na aukcji: {{product.price}}zł<br>
                             Cena sugerowana: {{ product.suggested_price }}zł<br>
                         <td>
-                            Różnica w cenie: <span class={% if product.percentage_decrease < 0 %}"label label-danger"{% else %}"label label-success"{% endif %}>{{ product.percentage_decrease }}%</span><br>
-                            Darmowa przesyłka: {% if product.free_shipping %} TAK {% else %} NIE {% endif %}
+                            <span class={% if product.percentage_decrease < 0 %}"label label-danger"{% else %}"label label-success"{% endif %}>{{ product.percentage_decrease }}%</span>
+                        </td>
                         <td>{{ product.timestamp_short }}</td>
                     </tr>
-
                     {% endfor %}
-
                 </table>
             </div>
             </div>

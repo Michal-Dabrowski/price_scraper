@@ -1,0 +1,55 @@
+<!-- extend from base layout -->
+{% extends "scraper.html" %}
+{% block content %}
+<div class="container">
+    <div class="row vertical-offset-100">
+    	<div class="col-md-4 col-md-offset-4">
+    		<div class="panel panel-default">
+			  	<div class="panel-heading">
+			    	<h3 class="panel-title">Zarejestruj się</h3>
+			 	</div>
+			  	<div class="panel-body">
+			    	<form action="" method="post" name="login">
+                    <fieldset>
+        {{ form.hidden_tag() }}
+        <p>
+            <div class="form-group {% if form.login.errors %}has-error{% endif %}">
+            {{ form.login(class="form-control", placeholder="login") }}
+            {% for error in form.login.errors %}
+                <div class="alert alert-danger" role="alert">{{ error }}</div>
+            {% endfor %}
+            </div>
+
+            <div class="form-group {% if form.email.errors %}has-error{% endif %}">
+            {{ form.email(class="form-control", placeholder="email") }}
+            {% for error in form.email.errors %}
+                <div class="alert alert-danger" role="alert">{{ error }}</div>
+            {% endfor %}
+            </div>
+
+            <div class="form-group {% if form.password.errors %}has-error{% endif %}">
+            {{ form.password(class="form-control", placeholder="hasło") }}
+            {% for error in form.password.errors %}
+                <div class="alert alert-danger" role="alert">{{ error }}</div>
+            {% endfor %}
+            </div>
+
+            <div class="form-group {% if form.password.errors %}has-error{% endif %}">
+            {{ form.confirm(class="form-control", placeholder="potwierdź hasło") }}
+            {% for error in form.confirm.errors %}
+                <div class="alert alert-danger" role="alert">{{ error }}</div>
+            {% endfor %}
+            </div>
+        </p>
+        <p><input class="btn btn-lg btn-danger btn-block" type="submit" value="Rejestracja"></p>
+                        <br>Masz już konto?<a href="{{url_for('login')}}"> Zaloguj się</a>
+
+                    </form>
+			    	</fieldset>
+			      	</form>
+			    </div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

@@ -2,41 +2,33 @@
 {% extends "scraper.html" %}
 
 {% block content %}
+<img class="center-block" src="/static/files/{{ source }}.jpg" width="204"><br>
+{% from "macros.html" import render_pagination with context %}
 
+{% include 'dealer_data_chart.html' %}
 <div class="panel panel-default">
     <!-- Default panel contents -->
-    {% if source == 'allegro' %}
-    <div class="panel-heading"><center><b>ALLEGRO</b></center></div>
-    {% elif source == 'ceneo' %}
-    <div class="panel-heading"><center><b>CENEO</b></center></div>
-    {% endif %}
-    <table class="table">
+    <table class="table table-striped">
         <tbody>
-
-        {% if source == 'allegro' %}
+        <tr>
+            <th>Pozycja</th>
+            <th>Nazwa sklepu</th>
+            <th>Oferty poniżej sugerowanej</th>
+            <th>Oferty ogółem</th>
+        </tr>
         {% for dealer in dealers %}
             <tr>
-                <td class="col-md-2"><a href="{{ url_for('all_products_list', source='allegro', dealer=dealer.name) }}">{{dealer.name}}</a></td>
-                <td class="col-md-2">Oferty poniżej sugerowanej: <a href="{{ url_for('products_list', source='allegro', dealer=dealer.name) }}">{{dealer.count_bad_auctions()}}</a></td>
-                <td class="col-md-2">Oferty ogółem: <a href="{{ url_for('all_products_list', source='allegro', dealer=dealer.name) }}">{{ dealer.count_auctions() }}</a></td>
+                <td class="col-md-1">{% if page > 1 %}{{ page }}{{ loop.index0 }}{% else %}{{ loop.index }}{% endif %}</td>
+                <td class="col-md-1">{{dealer.name}}</td>
+                <td class="col-md-1"><a href="{{ url_for('products_list', source=source, dealer=dealer.name) }}">{{dealer.count_bad_auctions()}}</a></td>
+                <td class="col-md-1"><a href="{{ url_for('all_products_list', source=source, dealer=dealer.name) }}">{{ dealer.count_auctions() }}</a></td>
             </tr>
         {% endfor %}
-        {% endif %}
-
-        {% if source == 'ceneo' %}
-        {% for dealer in dealers %}
-            <tr>
-                <td class="col-md-2"><a href="https:////www.{{dealer.name}}">{{dealer.name}}</a></td>
-                <td class="col-md-2">Oferty poniżej sugerowanej: <a href="{{ url_for('products_list', source='ceneo', dealer=dealer.name) }}">{{dealer.count_bad_auctions()}}</a></td>
-                <td class="col-md-2">Oferty ogółem: <a href="{{ url_for('all_products_list', source='ceneo', dealer=dealer.name) }}">{{ dealer.count_auctions() }}</a></td>
-            </tr>
-        {% endfor %}
-        {% endif %}
-
-        {% include 'dealer_data_chart.html' %}
-
         </tbody>
     </table>
 </div>
+
+{{ render_pagination(pagination) }}
+
 
 {% endblock %}

@@ -24,54 +24,30 @@
 
 </head>
 <body>
-{% include 'navbar.html' %}
-<center>
-<p>
-    {% if source == 'allegro' %}
-    <img src="/static/files/allegro.jpg" width="504">
-    <p><a href="{{ url_for('scraper', source='ceneo')}}" class="btn btn-default">Przełącz na Ceneo</a></p>
-    {% elif source == 'ceneo' %}
-    <img src="/static/files/ceneo.png" width="504">
-    <p><a href="{{ url_for('scraper', source='allegro')}}" class="btn btn-default">Przełącz na Allegro</a></p>
-    {% endif %}
-</p>
-</center><br>
 
+{% include 'navbar.html' %}
     <!-- Page Content -->
     <div class="container">
         <!-- /.row -->
-        <div class="btn-group btn-group-justified">
-            {% if source == 'allegro' %}
-            <a href="{{ url_for('old_analysis', source='allegro')}}" class="btn btn-lg btn-success">Pokaż wyniki ostatniej analizy</a>
-            <a href="{{ url_for('new_analysis', source='allegro')}}" class="btn btn-lg btn-success">Przeprowadź nową analizę</a>
-            {% elif source == 'ceneo' %}
-            <a href="{{ url_for('old_analysis', source='ceneo')}}" class="btn btn-lg btn-success">Pokaż wyniki ostatniej analizy</a>
-            <a href="{{ url_for('new_analysis', source='ceneo')}}" class="btn btn-lg btn-success">Przeprowadź nową analizę</a>
+        <br>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-danger" role="alert"><center>{{ message }}</center></div>
+                {% endfor %}
             {% endif %}
-        </div><br>
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-danger" role="alert"><center>{{ message }}</center></div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+        {% endwith %}
+
+    {% include 'progress_bar.html' %}
 
     {% block content %}{% endblock %}
+
     </div>
     <!-- /.container -->
 
-            <div class="row">
-            <div class="col-lg-12 text-center">
-
-            </div>
-            </div>
-
     <!-- jQuery Version 1.11.1 -->
     <script src="/static/js/jquery.js"></script>
-
-    <!-- Bootstrap Core JavaScript -->
-    <script src="/static/js/bootstrap.min.js"></script>
+    <script type="text/javascript"></script>
 
 </body>
 

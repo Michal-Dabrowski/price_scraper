@@ -1,86 +1,103 @@
-from flask import render_template, flash, redirect, session, url_for, request, g, jsonify
-from app import app, db
-from .models import SuggestedPrices, Product, Dealer, DealerStatistics, ProductStatistics
+# -*- coding: utf-8 -*-
+
+from flask import render_template, flash, redirect, session, url_for, request, g, jsonify, send_file, Response, stream_with_context, send_from_directory
+from app import app, db, lm
+from .models import SuggestedPrices, Product, Dealer, DealerStatistics, ProductStatistics, User
 from datetime import datetime
-from config import PRODUCTS_PER_PAGE, UPLOAD_FOLDER
-from .allegro_scraper import scrap_allegro, detect_name_and_suggested_price
-from .ceneo_scraper import scrap_ceneo
+from config import DEALERS_PER_PAGE, UPLOAD_FOLDER
+from .allegro_scraper import AllegroScraper
+from .ceneo_scraper import CeneoScraper
+from .pagination_object import Pagination
 from sqlalchemy import func
 import json
-from .forms import SearchForm
+from .forms import SearchForm, LoginForm, RegisterForm
+from flask_login import login_user, logout_user, current_user, login_required
+from math import ceil
 import random
+import time
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        login = form.login.data
+        password = form.password.data
+        registered_user = User.query.filter_by(login=login, password=password, active=True).first()
+        if registered_user is None:
+            flash('Nierpawidłowy login lub hasło')
+            return redirect(url_for('login'))
+        else:
+            login_user(registered_user)
+            return redirect(url_for('old_analysis', source='allegro', page=1))
+    return render_template('login.html', form=form)
+
+@app.route('/register', methods= ['GET', 'POST'])
+def register():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        register_user(form.login.data, form.password.data, form.email.data)
+        flash('Rejestracja pomyślna. Poczkaj na aktywację konta przez administratora strony.')
+        return(redirect(url_for('login')))
+    return render_template("register.html",
+                           title="Register",
+                           form=form)
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+@login_required
+@app.route('/scraper/<source>', methods=['GET', 'POST'])
+def scraper(source='allegro'):
+    return render_template('scraper.html',
+                           source=source)
 
 @app.route('/')
 @app.route('/start')
 @app.route('/index')
-def start():
-    return render_template('start.html')
-
-@app.route('/scraper/<source>', methods=['GET', 'POST'])
-def scraper(source):
-    form = SearchForm()
-    if form.validate_on_submit():
-        try:
-            name = detect_name_and_suggested_price(form.search.data)
-            name = name['name']
-            products = Product.query.filter_by(product_name=name).order_by(Product.percentage_decrease.desc()).all()
-            return render_template('products_list.html', products=products, dealer=name, source=source, form=form)
-        except TypeError:
-            flash('Nie znaleziono produktu ' + form.search.data)
-            return render_template('scraper.html',
-                           form=form,
-                           source=source)
-    return render_template('scraper.html',
-                           form=form,
-                           source=source)
-
 @app.route('/old_analysis/<source>')
-def old_analysis(source):
+@app.route('/old_analysis/<source>/<int:page>')
+@login_required
+def old_analysis(source='allegro', page=1):
     subquery = db.session.query(func.count(Product.id).label('pc'), Product.dealer_id).filter_by(
         archive=False).filter_by(price_too_low=True).group_by(Product.dealer_id).order_by(
         func.count(Product.id)).subquery()
     query = db.session.query(Dealer).filter_by(source=source).outerjoin(subquery).order_by(subquery.c.pc.desc())
-    dealers = query.all()
-    winner = query.first()
+    pagination = Pagination(page, 10, query.count())
+    dealers = query.paginate(page, 10, error_out=False).items
     line_data = ProductStatistics.query.filter_by(source=source).order_by(ProductStatistics.timestamp.asc()).all()
     line_data = [[str(i.timestamp_short), i.good_auctions, i.bad_auctions, i.all_auctions] for i in line_data]
     return render_template('dealer_base.html',
                            source=source,
                            dealers=dealers,
-                           winner=winner.name,
-                           line_data=line_data
+                           line_data=line_data,
+                           page=page,
+                           pagination=pagination
                            )
 
-@app.route('/new_analysis/<source>')
-def new_analysis(source):
-    today = datetime.utcnow().strftime('%Y-%m-%d')
-    newest_product = Product.query.filter_by(source=source).order_by(Product.timestamp_full.desc()).first()
-    if newest_product is None or newest_product.timestamp_short != today:
+@app.route('/scrap/<source>/<force>')
+@login_required
+def scrap(source, force):
+    def generate_progress():
+        today = datetime.utcnow().strftime('%Y-%m-%d')
+        newest_product = Product.query.filter_by(source=source).order_by(Product.timestamp_full.desc()).first()
+        if newest_product is None or newest_product.timestamp_short != today or force=='true':
             if source == 'allegro':
-                data = scrap_allegro('brand_name')
+                g.scraper = AllegroScraper()
             elif source == 'ceneo':
-                data = scrap_ceneo('brand_name')
-            data_dump = json.dumps(data)
-            with open(UPLOAD_FOLDER + str(source) + '_dump_' + today + '.txt', 'w') as file:
-                file.write(data_dump)
-            update_product_database_from_object(data)
-    else:
-        flash('Ze względów bezpieczeństwa można wykonać tylko jedną analizę dziennie.')
-    subquery = db.session.query(func.count(Product.id).label('pc'), Product.dealer_id).filter_by(
-        archive=False).filter_by(price_too_low=True).group_by(Product.dealer_id).order_by(
-        func.count(Product.id)).subquery()
-    query = db.session.query(Dealer).filter_by(source=source).outerjoin(subquery).order_by(subquery.c.pc.desc())
-    dealers = query.all()
-    winner = query.first()
-    line_data = ProductStatistics.query.filter_by(source=source).order_by(ProductStatistics.timestamp.asc()).all()
-    line_data = [[str(i.timestamp_short), i.good_auctions, i.bad_auctions, i.all_auctions] for i in line_data]
-    return render_template('dealer_base.html',
-                           source=source,
-                           dealers=dealers,
-                           winner=winner.name,
-                           line_data=line_data)
+                g.scraper = CeneoScraper()
+            for step in g.scraper.main('BRAND_NAME'):
+                yield "data:" + str(step) + "\n\n"
+            dump_json_to_file(g.scraper.products_list, source, today)
+            update_product_database_from_object(g.scraper.products_list)
+            update_statistics(source)
+        else:
+            yield "data:" + 'error' + "\n\n"
+    return Response(stream_with_context(generate_progress()), mimetype='text/event-stream')
 
 @app.route('/products_list/<source>/<dealer>')
+@login_required
 def products_list(source, dealer):
     dealer = Dealer.query.filter_by(source=source).filter_by(name=dealer).first()
     products = dealer.show_bad_auctions()
@@ -94,6 +111,7 @@ def products_list(source, dealer):
                            )
 
 @app.route('/all_products_list/<source>/<dealer>')
+@login_required
 def all_products_list(source, dealer):
     dealer = Dealer.query.filter_by(source=source).filter_by(name=dealer).first()
     products = dealer.products.filter_by(archive=False).order_by(Product.percentage_decrease.desc()).all()
@@ -107,6 +125,7 @@ def all_products_list(source, dealer):
                            )
 
 @app.route('/links/<source>/<dealer>')
+@login_required
 def links(source, dealer):
     dealer = Dealer.query.filter_by(source=source).filter_by(name=dealer).first()
     products = dealer.show_bad_auctions()
@@ -116,6 +135,7 @@ def links(source, dealer):
                            products=products)
 
 @app.route('/<source>/top_10')
+@login_required
 def top_10(source):
     products = db.session.query(
         Product.product_name, func.count(Product.product_name).label('products_count')).\
@@ -128,6 +148,7 @@ def top_10(source):
                            products=products)
 
 @app.route('/top_bad')
+@login_required
 def top_bad():
     order_subquery = db.session.query(
         Product.dealer_id,
@@ -162,16 +183,67 @@ def background_process():
     except Exception as e:
         return str(e)
 
+@app.route('/search', methods=['GET', 'POST'])
+@login_required
+def search_navbar():
+    if not g.search_form.validate_on_submit():
+        return redirect(url_for('index'))
+    else:
+        try:
+            name = AllegroScraper.detect_name_and_suggested_price(g.search_form.search.data)
+            name = name['name']
+            products = Product.query.filter_by(product_name=name).filter_by(archive=False).order_by(Product.percentage_decrease.asc()).all()
+            return render_template('products_list.html', products=products, dealer=name, search=True)
+        except TypeError:
+            flash('Nie znaleziono produktu ' + g.search_form.search.data)
+            return render_template('products_list.html', products=[], dealer=str(g.search_form.search.data))
+
+@app.before_request
+def before_request():
+    g.user = current_user
+    g.search_form = SearchForm()
+
+@lm.user_loader
+def load_user(id):
+    return User.query.get(int(id))
+
+def url_for_other_page(page):
+    args = request.view_args.copy()
+    args['page'] = page
+    return url_for(request.endpoint, **args)
+app.jinja_env.globals['url_for_other_page'] = url_for_other_page
+
+def block_scraper(source):
+    print('using block scraper')
+    today = datetime.utcnow().strftime('%Y-%m-%d')
+    newest_product = Product.query.filter_by(source=source).order_by(Product.timestamp_full.desc()).first()
+    if newest_product is None or newest_product.timestamp_short != today:
+        return True
+    return False
+
+def dump_json_to_file(data, source, today):
+    data_dump = json.dumps(data)
+    with open(UPLOAD_FOLDER + str(source) + '_dump_' + today + '.txt', 'w') as file:
+        file.write(data_dump)
+    print('Dump file saved.')
+
+def register_user(login, password, email):
+    user = User(login=login, password=password, email=email, active=False)
+    db.session.add(user)
+    db.session.commit()
+
 def update_statistics(source):
     today = datetime.utcnow().strftime('%Y-%m-%d')
     first_dealer_statistic = DealerStatistics.query.filter_by(source=source).order_by(DealerStatistics.timestamp.desc()).first()
     first_product_statistic = ProductStatistics.query.filter_by(source=source).order_by(ProductStatistics.timestamp.desc()).first()
     if first_dealer_statistic is None or first_dealer_statistic.timestamp_short != today:
         DealerStatistics.update_dealer_statistics(source)
+        print('Dealer statistics updated')
     else:
         print('Dealer statistics not updated')
     if first_product_statistic is None or first_product_statistic.timestamp_short != today:
         ProductStatistics.update_product_statistics(source)
+        print('Product statistics updated')
     else:
         print('Product statistics not updated')
 
@@ -216,4 +288,4 @@ def update_product_database_from_object(object):
                 product.archive = False
                 db.session.add(product)
             db.session.commit()
-    update_statistics(source)
+    print('Database updated.')
