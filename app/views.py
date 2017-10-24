@@ -9,7 +9,7 @@ from .allegro_scraper import AllegroScraper
 from .ceneo_scraper import CeneoScraper
 from .pagination_object import Pagination
 from sqlalchemy import func
-from models import update_product_statistics, update_dealer_statistics, populate_table_from_file, detect_allegro_dealer_name, add_dealer
+from .models import update_product_statistics, update_dealer_statistics, add_dealer
 import json
 from .forms import SearchForm, LoginForm, RegisterForm
 from flask_login import login_user, logout_user, current_user, login_required
@@ -238,12 +238,12 @@ def update_statistics(source):
     first_dealer_statistic = DealerStatistics.query.filter_by(source=source).order_by(DealerStatistics.timestamp.desc()).first()
     first_product_statistic = ProductStatistics.query.filter_by(source=source).order_by(ProductStatistics.timestamp.desc()).first()
     if first_dealer_statistic is None or first_dealer_statistic.timestamp_short != today:
-        DealerStatistics.update_dealer_statistics(source)
+        update_dealer_statistics(source)
         print('Dealer statistics updated')
     else:
         print('Dealer statistics not updated')
     if first_product_statistic is None or first_product_statistic.timestamp_short != today:
-        ProductStatistics.update_product_statistics(source)
+        update_product_statistics(source)
         print('Product statistics updated')
     else:
         print('Product statistics not updated')
@@ -261,7 +261,7 @@ def update_product_database_from_object(object):
 
             product = Product.query.filter_by(source=source).filter_by(dealer_id=item['dealer_id']).filter_by(full_name=item['full_name']).first()
             if product is None:
-                Dealer.add_dealer(item['dealer_id'], source, item['dealer_name'])
+                add_dealer(item['dealer_id'], source, item['dealer_name'])
                 product = Product(dealer_id=item['dealer_id'],
                                   source=source,
                                   full_name=item['full_name'],
