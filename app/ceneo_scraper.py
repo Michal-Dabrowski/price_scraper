@@ -9,7 +9,8 @@ from app.allegro_scraper import Product, AllegroScraper
 
 class CeneoUrlScraper:
 
-    def __init__(self):
+    def __init__(self, brand_name):
+        self.brand_name = brand_name
         self.url_list = []
         self.current_progress_bar_percent_value = 0
         self.session = requests.Session()
@@ -37,19 +38,41 @@ class CeneoUrlScraper:
                 urls[str(product)] = str(url)
         return urls
 
+    def filter_out_unwanted_products(self, dict_list):
+        """
+        Takes a list of names or list of dictionaries containing product names (the name should be under 'name' key),
+        and checks if a name is in the database. Creates a new list or dict with only the names that are in the database.
+
+        :param dict_list: a list of dictionaries containing names and urls
+        :return: a new list containing only products that are in the database
+        """
+        new_dict = dict()
+        for element in dict_list:
+            if isinstance(element, dict):
+                for key, value in element.items():
+                    if self.filter_name(key):
+                        new_dict[key] = value
+        return new_dict
+
+    def filter_name(self, name):
+        name = AllegroScraper.detect_name_and_suggested_price(name)
+        if name is not None:
+            return True
+        return False
+
     def print_feedback(self, page_number, last_page):
         percent = round(page_number / last_page * 100, 1)
         self.current_progress_bar_percent_value = percent
         print("Scraping page {} from {}. Progress: {}%".format(page_number, last_page, percent))
 
-    def main(self, brand_name):
+    def generator(self):
         current_page_number = 0
         last_page_number = 0
         while current_page_number <= last_page_number:
             if current_page_number == 0:
-                response = self.session.get('http://www.ceneo.pl/;szukaj-' + str(brand_name))
+                response = self.session.get('http://www.ceneo.pl/;szukaj-' + str(self.brand_name))
             else:
-                response = self.session.get('http://www.ceneo.pl/;szukaj-' + str(brand_name) + ';0020-30-0-0-' + str(current_page_number) + '.htm')
+                response = self.session.get('http://www.ceneo.pl/;szukaj-' + str(self.brand_name) + ';0020-30-0-0-' + str(current_page_number) + '.htm')
             current_page_soup = BeautifulSoup(response.content)
             current_page_number += 1
             last_page_number = self.detect_last_page(current_page_soup)
@@ -77,28 +100,6 @@ class CeneoScraper:
         percent = round(page_number / last_page * 100, 1)
         return percent
 
-    def filter_out_unwanted_products(self, list):
-        """
-        Takes a list of names or list of dictionaries containing product names (the name should be under 'name' key),
-        and checks if a name is in the database. Creates a new list or dict with only the names that are in the database.
-
-        :param list: a list of names or dictionaries containing names
-        :return: a new list containing only products that are in the database
-        """
-        new_dict = dict()
-        for element in list:
-            if isinstance(element, dict):
-                for key, value in element.items():
-                    if self.filter_name(key):
-                        new_dict[key] = value
-        return new_dict
-
-    def filter_name(self, name):
-        name = AllegroScraper.detect_name_and_suggested_price(name)
-        if name is not None:
-            return True
-        return False
-
     def detect_last_page(self, soup):
         try:
             last_page = soup.find('div', class_="pagination-top")
@@ -109,7 +110,7 @@ class CeneoScraper:
             last_page = 20  # we probably don't need more... probably
         return last_page - 1
 
-    def get_products_from_ceneo_page(self, url):
+    def scrap_offers_from_ceneo_url(self, url):
         response = self.session.get('http://www.ceneo.pl/' + url)
         soup = BeautifulSoup(response.content)
 
@@ -171,16 +172,17 @@ class CeneoScraper:
 
     def get_correct_price(self, result_set, offer_id, shop_id):
         for element in result_set:
-            validators = element.find_all('tr', class_="details-row js_product-offer")
-            for element in validators:
-                if element.get('data-offer') == offer_id and element.get('data-shop') == shop_id:
-                    price = element.get('data-offer-price')
+            offers = element.find_all('tr', class_="details-row js_product-offer")
+            for offer in offers:
+                if offer.get('data-offer') == offer_id and offer.get('data-shop') == shop_id:
+                    price = offer.find('a', class_="go-to-shop")
+                    price = price.get('data-price')
                     return price
 
     def main(self):
-        for index, url in enumerate(self.url_list):
-            self.products_list += self.get_products_from_ceneo_page(url)
-            percent = self.get_percent(index + 1, len(self.url_list))
+        for index, url in enumerate(self.url_list, start=1):
+            self.products_list += self.scrap_offers_from_ceneo_url(url)
+            percent = self.get_percent(index, len(self.url_list))
             self.set_current_progress(percent)
             yield self.current_progress_bar_percent_value
             time.sleep(random.uniform(15, 40))

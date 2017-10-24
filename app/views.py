@@ -9,6 +9,7 @@ from .allegro_scraper import AllegroScraper
 from .ceneo_scraper import CeneoScraper
 from .pagination_object import Pagination
 from sqlalchemy import func
+from models import update_product_statistics, update_dealer_statistics, populate_table_from_file, detect_allegro_dealer_name, add_dealer
 import json
 from .forms import SearchForm, LoginForm, RegisterForm
 from flask_login import login_user, logout_user, current_user, login_required
@@ -84,10 +85,10 @@ def scrap(source, force):
         newest_product = Product.query.filter_by(source=source).order_by(Product.timestamp_full.desc()).first()
         if newest_product is None or newest_product.timestamp_short != today or force=='true':
             if source == 'allegro':
-                g.scraper = AllegroScraper()
+                g.scraper = AllegroScraper('BRAND_NAME')
             elif source == 'ceneo':
-                g.scraper = CeneoScraper()
-            for step in g.scraper.main('BRAND_NAME'):
+                g.scraper = CeneoScraper('BRAND_NAME')
+            for step in g.scraper.generator():
                 yield "data:" + str(step) + "\n\n"
             dump_json_to_file(g.scraper.products_list, source, today)
             update_product_database_from_object(g.scraper.products_list)

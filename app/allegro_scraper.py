@@ -30,7 +30,8 @@ class Product:
 
 class AllegroScraper:
 
-    def __init__(self):
+    def __init__(self, brand_name):
+        self.brand_name = brand_name
         headers = requests.utils.default_headers()
         headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:52.0) Gecko/20100101 Firefox/52.0'})
         self.headers = headers
@@ -115,38 +116,18 @@ class AllegroScraper:
         print("Scraping page {} from {}. Progress: {}%".format(self.current_page, self.last_page, percent))
 
     @staticmethod
-    def detect_name_and_suggested_price(name):
-        name = name.lower()
-
-        for element in ['pokrywa', 'kufer', 'case', 'igła', 'headshell', 'decksaver',
-                        'cable', 'kabel', 'statyw', 'laptop', 'stand', 'puck', 'adapter',
-                        'szczoteczka', 'ear pack', 'fader cap', 'knob cap', 'pasek', 'adaptor', 'gooseneck', 'stylus']:
-            if element in name:
-                return None
-
-        suggested_prices_sql_table = SuggestedPrices.query.all()
-        for row in suggested_prices_sql_table:
-            match = re.search(row.product_name_regex_pattern, name)
-            if match:
-                return {'name': row.product_name, 'suggested_price': row.suggested_price}
-        return None
-
-    @staticmethod
     def count_percentage_decrease(regular_price, dealer_price):
         percent = dealer_price / regular_price
         percent = percent * 100
         percent = percent - 100
         return round(percent, 2)
 
-    def main(self, brand_name):
-        """
-        :param brand_name: brand name we want to scrap
-        """
+    def generator(self):
         with requests.Session() as s:
             while self.current_page <= self.last_page:
                 s.headers = self.headers
                 response = s.get(
-                    url="https://allegro.pl/listing?string=" + brand_name +
+                    url="https://allegro.pl/listing?string=" + self.brand_name +
                         "&order=m&bmatch=base-relevance-floki-5-nga-hc-ele-1-2-0901&p=" +
                         str(self.current_page))
                 self.current_page_soup = BeautifulSoup(response.content, "html.parser")
