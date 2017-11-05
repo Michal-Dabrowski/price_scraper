@@ -2,14 +2,14 @@
 
 from flask import render_template, flash, redirect, session, url_for, request, g, jsonify, send_file, Response, stream_with_context, send_from_directory
 from app import app, db, lm
-from .models import SuggestedPrices, Product, Dealer, DealerStatistics, ProductStatistics, User
+from .models import Product, Dealer, DealerStatistics, ProductStatistics, User
 from datetime import datetime
 from config import DEALERS_PER_PAGE, UPLOAD_FOLDER, BRAND_NAME
 from .allegro_scraper import AllegroScraper
 from .ceneo_scraper import CeneoScraper, CeneoUrlScraper
 from .pagination_object import Pagination
 from sqlalchemy import func
-from .models import update_product_statistics, update_dealer_statistics, add_dealer
+from .models import update_product_statistics, update_dealer_statistics, add_dealer, detect_name_and_suggested_price
 import json
 from .forms import SearchForm, LoginForm, RegisterForm
 from flask_login import login_user, logout_user, current_user, login_required
@@ -98,8 +98,9 @@ def scrap(source, force):
             dump_json_to_file(g.scraper.products_list, source, today)
             update_product_database_from_object(g.scraper.products_list)
             update_statistics(source)
+            yield "data:done\n\n"
         else:
-            yield "data:" + 'error' + "\n\n"
+            yield "data:error\n\n"
     return Response(stream_with_context(generate_progress()), mimetype='text/event-stream')
 
 @app.route('/products_list/<source>/<dealer>')
@@ -196,7 +197,7 @@ def search_navbar():
         return redirect(url_for('index'))
     else:
         try:
-            name = AllegroScraper.detect_name_and_suggested_price(g.search_form.search.data)
+            name = detect_name_and_suggested_price(g.search_form.search.data)
             name = name['name']
             products = Product.query.filter_by(product_name=name).filter_by(archive=False).order_by(Product.percentage_decrease.asc()).all()
             return render_template('products_list.html', products=products, dealer=name, search=True)
@@ -295,3 +296,8 @@ def update_product_database_from_object(object):
                 db.session.add(product)
             db.session.commit()
     print('Database updated.')
+
+def update_product_database_from_file(filename):
+    with open(UPLOAD_FOLDER + filename) as file:
+        data = json.loads(file.read())
+        update_product_database_from_object(data)

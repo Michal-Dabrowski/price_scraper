@@ -6,10 +6,7 @@ import re
 import time
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
-
-from app import db
-from app.models import SuggestedPrices
+from .models import detect_name_and_suggested_price
 
 class Product:
     def __init__(self):
@@ -75,7 +72,7 @@ class AllegroScraper:
             if 'buyNow' in item['sellingMode']:  #filters out 'auctions'
                 try:
                     product = Product()
-                    name_and_suggested_price = self.detect_name_and_suggested_price(
+                    name_and_suggested_price = detect_name_and_suggested_price(
                         item['name'])  # generates None for discontinued products
                     price = float(item['sellingMode']['buyNow']['price']['amount'])
                     suggested_price = float(name_and_suggested_price['suggested_price'].replace(',', '.'))

@@ -112,7 +112,7 @@ class CeneoUrlScraper:
             yield self.current_progress_bar_percent_value
             time.sleep(random.uniform(15, 35))
         random.shuffle(self.url_dict_list)
-        print('{} urls collected'.format(len(self.url_dict_list)))
+        print('{} urls collected'.format(len(self.filtered_url_list)))
 
 class CeneoScraper:
 

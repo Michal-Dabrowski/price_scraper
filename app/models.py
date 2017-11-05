@@ -94,7 +94,7 @@ def add_dealer(dealer_id, source, name):
     d = Dealer.query.filter_by(dealer_id=dealer_id).first()
     if d is None:
         if source == 'allegro':
-            name = Dealer.detect_allegro_dealer_name(dealer_id)
+            name = detect_allegro_dealer_name(dealer_id)
         dealer = Dealer(dealer_id=dealer_id, name=name, source=source)
         print('Adding dealer {}'.format(name))
         db.session.add(dealer)
