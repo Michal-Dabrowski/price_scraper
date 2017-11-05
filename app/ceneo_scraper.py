@@ -21,9 +21,17 @@ class CeneoUrlScraper:
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'})
 
     @property
-    def url_list(self):
+    def filtered_url_list(self):
         url_list = []
         for dictionary in self.filtered_url_dict_list:
+            for key, value in dictionary.items():
+                url_list.append(value)
+        return list(set(url_list))
+
+    @property
+    def url_list(self):
+        url_list = []
+        for dictionary in self.url_dict_list:
             for key, value in dictionary.items():
                 url_list.append(value)
         return list(set(url_list))

@@ -4,9 +4,9 @@ from flask import render_template, flash, redirect, session, url_for, request, g
 from app import app, db, lm
 from .models import SuggestedPrices, Product, Dealer, DealerStatistics, ProductStatistics, User
 from datetime import datetime
-from config import DEALERS_PER_PAGE, UPLOAD_FOLDER
+from config import DEALERS_PER_PAGE, UPLOAD_FOLDER, BRAND_NAME
 from .allegro_scraper import AllegroScraper
-from .ceneo_scraper import CeneoScraper
+from .ceneo_scraper import CeneoScraper, CeneoUrlScraper
 from .pagination_object import Pagination
 from sqlalchemy import func
 from .models import update_product_statistics, update_dealer_statistics, add_dealer
@@ -85,11 +85,16 @@ def scrap(source, force):
         newest_product = Product.query.filter_by(source=source).order_by(Product.timestamp_full.desc()).first()
         if newest_product is None or newest_product.timestamp_short != today or force=='true':
             if source == 'allegro':
-                g.scraper = AllegroScraper('BRAND_NAME')
+                g.scraper = AllegroScraper(BRAND_NAME)
+                for step in g.scraper.generator():
+                    yield "data:" + str(step) + "\n\n"
             elif source == 'ceneo':
-                g.scraper = CeneoScraper('BRAND_NAME')
-            for step in g.scraper.generator():
-                yield "data:" + str(step) + "\n\n"
+                g.url_scraper = CeneoUrlScraper(BRAND_NAME)
+                for step in g.url_scraper.generator():
+                    yield "data:" + str(step) + " url" + "\n\n"
+                g.scraper = CeneoScraper(g.url_scraper.filtered_url_list)
+                for step in g.scraper.generator():
+                    yield "data:" + str(step) + "\n\n"
             dump_json_to_file(g.scraper.products_list, source, today)
             update_product_database_from_object(g.scraper.products_list)
             update_statistics(source)
