@@ -43,7 +43,7 @@ class CeneoUrlScraper:
 
     @property
     def feedback(self):
-        return "Scraping page {} from {}".format(self._current_page_number, self._last_page_number)
+        return "Scraping page {} from {}".format(self._current_page_number, self._last_page_number + 1)
 
     def create_filtered_url_dict_list(self):
         new_dict = dict()
@@ -103,8 +103,8 @@ class CeneoUrlScraper:
                 response = self.session.get('http://www.ceneo.pl/;szukaj-' + str(self.brand_name))
             else:
                 response = self.session.get('http://www.ceneo.pl/;szukaj-' + str(self.brand_name) + ';0020-30-0-0-' + str(self._current_page_number) + '.htm')
-            self._current_page_soup = BeautifulSoup(response.content)
             self._current_page_number += 1
+            self._current_page_soup = BeautifulSoup(response.content)
             self._last_page_number = self.detect_last_page(self._current_page_soup)
             self.url_dict_list.append(self.get_urls_with_names_from_ceneo_page(self._current_page_soup))
             self.create_filtered_url_dict_list()
