@@ -2,13 +2,14 @@
 
 from flask import render_template, flash, redirect, session, url_for, request, g, jsonify, send_file, Response, stream_with_context, send_from_directory
 from app import app, db, lm
-from .models import SuggestedPrices, Product, Dealer, DealerStatistics, ProductStatistics, User
+from .models import Product, Dealer, DealerStatistics, ProductStatistics, User
 from datetime import datetime
-from config import DEALERS_PER_PAGE, UPLOAD_FOLDER
+from config import DEALERS_PER_PAGE, UPLOAD_FOLDER, BRAND_NAME
 from .allegro_scraper import AllegroScraper
-from .ceneo_scraper import CeneoScraper
+from .ceneo_scraper import CeneoScraper, CeneoUrlScraper
 from .pagination_object import Pagination
 from sqlalchemy import func
+from .models import update_product_statistics, update_dealer_statistics, add_dealer, detect_name_and_suggested_price
 import json
 from .forms import SearchForm, LoginForm, RegisterForm
 from flask_login import login_user, logout_user, current_user, login_required
@@ -84,16 +85,22 @@ def scrap(source, force):
         newest_product = Product.query.filter_by(source=source).order_by(Product.timestamp_full.desc()).first()
         if newest_product is None or newest_product.timestamp_short != today or force=='true':
             if source == 'allegro':
-                g.scraper = AllegroScraper()
+                g.scraper = AllegroScraper(BRAND_NAME)
+                for step in g.scraper.generator():
+                    yield "data:" + str(step) + "\n\n"
             elif source == 'ceneo':
-                g.scraper = CeneoScraper()
-            for step in g.scraper.main('BRAND_NAME'):
-                yield "data:" + str(step) + "\n\n"
+                g.url_scraper = CeneoUrlScraper(BRAND_NAME)
+                for step in g.url_scraper.generator():
+                    yield "data:" + str(step) + " url" + "\n\n"
+                g.scraper = CeneoScraper(g.url_scraper.filtered_url_list)
+                for step in g.scraper.generator():
+                    yield "data:" + str(step) + "\n\n"
             dump_json_to_file(g.scraper.products_list, source, today)
             update_product_database_from_object(g.scraper.products_list)
             update_statistics(source)
+            yield "data:done\n\n"
         else:
-            yield "data:" + 'error' + "\n\n"
+            yield "data:error\n\n"
     return Response(stream_with_context(generate_progress()), mimetype='text/event-stream')
 
 @app.route('/products_list/<source>/<dealer>')
@@ -190,7 +197,7 @@ def search_navbar():
         return redirect(url_for('index'))
     else:
         try:
-            name = AllegroScraper.detect_name_and_suggested_price(g.search_form.search.data)
+            name = detect_name_and_suggested_price(g.search_form.search.data)
             name = name['name']
             products = Product.query.filter_by(product_name=name).filter_by(archive=False).order_by(Product.percentage_decrease.asc()).all()
             return render_template('products_list.html', products=products, dealer=name, search=True)
@@ -237,12 +244,12 @@ def update_statistics(source):
     first_dealer_statistic = DealerStatistics.query.filter_by(source=source).order_by(DealerStatistics.timestamp.desc()).first()
     first_product_statistic = ProductStatistics.query.filter_by(source=source).order_by(ProductStatistics.timestamp.desc()).first()
     if first_dealer_statistic is None or first_dealer_statistic.timestamp_short != today:
-        DealerStatistics.update_dealer_statistics(source)
+        update_dealer_statistics(source)
         print('Dealer statistics updated')
     else:
         print('Dealer statistics not updated')
     if first_product_statistic is None or first_product_statistic.timestamp_short != today:
-        ProductStatistics.update_product_statistics(source)
+        update_product_statistics(source)
         print('Product statistics updated')
     else:
         print('Product statistics not updated')
@@ -260,7 +267,7 @@ def update_product_database_from_object(object):
 
             product = Product.query.filter_by(source=source).filter_by(dealer_id=item['dealer_id']).filter_by(full_name=item['full_name']).first()
             if product is None:
-                Dealer.add_dealer(item['dealer_id'], source, item['dealer_name'])
+                add_dealer(item['dealer_id'], source, item['dealer_name'])
                 product = Product(dealer_id=item['dealer_id'],
                                   source=source,
                                   full_name=item['full_name'],
@@ -289,3 +296,8 @@ def update_product_database_from_object(object):
                 db.session.add(product)
             db.session.commit()
     print('Database updated.')
+
+def update_product_database_from_file(filename):
+    with open(UPLOAD_FOLDER + filename) as file:
+        data = json.loads(file.read())
+        update_product_database_from_object(data)
