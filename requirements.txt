@@ -19,6 +19,7 @@ MarkupSafe==1.0
 nbformat==4.3.0
 numpy==1.12.1
 pandas==0.19.2
+passlib==1.7.1
 pbr==2.1.0
 plotly==2.0.8
 python-dateutil==2.6.0
