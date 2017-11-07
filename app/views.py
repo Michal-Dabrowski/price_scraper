@@ -13,6 +13,7 @@ from .models import update_product_statistics, update_dealer_statistics, add_dea
 import json
 from .forms import SearchForm, LoginForm, RegisterForm
 from flask_login import login_user, logout_user, current_user, login_required
+from passlib.hash import sha256_crypt
 from math import ceil
 import random
 import time
@@ -23,13 +24,16 @@ def login():
     if form.validate_on_submit():
         login = form.login.data
         password = form.password.data
-        registered_user = User.query.filter_by(login=login, password=password, active=True).first()
+        registered_user = User.query.filter_by(login=login, active=True).first()
         if registered_user is None:
-            flash('Nierpawidłowy login lub hasło')
+            flash('Nieprawidłowy login lub hasło')
             return redirect(url_for('login'))
-        else:
+        elif sha256_crypt.verify(password, registered_user.password):
             login_user(registered_user)
             return redirect(url_for('old_analysis', source='allegro', page=1))
+        else:
+            flash('Nieprawidłowy login lub hasło')
+            return redirect(url_for('login'))
     return render_template('login.html', form=form)
 
 @app.route('/register', methods= ['GET', 'POST'])
@@ -235,7 +239,7 @@ def dump_json_to_file(data, source, today):
     print('Dump file saved.')
 
 def register_user(login, password, email):
-    user = User(login=login, password=password, email=email, active=False)
+    user = User(login=login, password=sha256_crypt.encrypt(password), email=email, active=False)
     db.session.add(user)
     db.session.commit()
 
