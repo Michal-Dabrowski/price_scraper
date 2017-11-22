@@ -222,6 +222,7 @@ class CeneoScraper:
                         price = set(prices_details).intersection(prices)
                         price = list(price)
                         price = price[0]
+                        price = price.split(',')[0]
                     return price
 
     def generator(self):
