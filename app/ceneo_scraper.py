@@ -43,7 +43,7 @@ class CeneoUrlScraper:
 
     @property
     def feedback(self):
-        return "Scraping page {} from {}".format(self._current_page_number, self._last_page_number)
+        return "Scraping page {} from {}".format(self._current_page_number, self._last_page_number + 1)
 
     def create_filtered_url_dict_list(self):
         new_dict = dict()
@@ -103,8 +103,8 @@ class CeneoUrlScraper:
                 response = self.session.get('http://www.ceneo.pl/;szukaj-' + str(self.brand_name))
             else:
                 response = self.session.get('http://www.ceneo.pl/;szukaj-' + str(self.brand_name) + ';0020-30-0-0-' + str(self._current_page_number) + '.htm')
-            self._current_page_soup = BeautifulSoup(response.content)
             self._current_page_number += 1
+            self._current_page_soup = BeautifulSoup(response.content)
             self._last_page_number = self.detect_last_page(self._current_page_soup)
             self.url_dict_list.append(self.get_urls_with_names_from_ceneo_page(self._current_page_soup))
             self.create_filtered_url_dict_list()
@@ -202,12 +202,27 @@ class CeneoScraper:
         return item.find('span', class_="short-name__txt").text
 
     def get_correct_price(self, result_set, offer_id, shop_id):
+        """
+        TODO: return a correct value that can be converted to float
+        """
         for element in result_set:
-            offers = element.find_all('tr', class_="details-row js_product-offer")
-            for offer in offers:
+            offers = element.find_all('tr', class_="product-offer js_product-offer")
+            offers_details = element.find_all('tr', class_="details-row js_product-offer")
+            for offer in offers_details:
                 if offer.get('data-offer') == offer_id and offer.get('data-shop') == shop_id:
                     price = offer.find('a', class_="go-to-shop")
                     price = price.get('data-price')
+                    try:
+                        price = int(price)
+                    except ValueError:
+                        prices_details = [i.text for i in offer.find_all('span', class_="price-format nowrap")]
+                        for offer in offers:
+                            if offer.get('data-offer') == offer_id and offer.get('data-shop') == shop_id:
+                                prices = [i.text for i in offer.find_all('span', class_="price-format nowrap")]
+                        price = set(prices_details).intersection(prices)
+                        price = list(price)
+                        price = price[0]
+                        price = price.split(',')[0]
                     return price
 
     def generator(self):
