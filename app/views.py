@@ -105,7 +105,9 @@ def scrap(source, force):
             yield "data:done\n\n"
         else:
             yield "data:error\n\n"
-    return Response(stream_with_context(generate_progress()), mimetype='text/event-stream')
+    resp = Response(stream_with_context(generate_progress()), mimetype='text/event-stream')
+    resp.headers['X-Accel-Buffering'] = 'no'
+    return resp
 
 @app.route('/products_list/<source>/<dealer>')
 @login_required
