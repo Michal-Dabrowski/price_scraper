@@ -69,26 +69,25 @@ class AllegroScraper:
         """
         products_list = list()
         for item in json_object:
-            if 'buyNow' in item['sellingMode']:  #filters out 'auctions'
+            if self.product_is_buynow_option(item):  #filters out 'auctions'
                 try:
                     product = Product()
                     name_and_suggested_price = detect_name_and_suggested_price(
                         item['name'])  # generates None for discontinued products
-                    price = float(item['sellingMode']['buyNow']['price']['amount'])
                     suggested_price = float(name_and_suggested_price['suggested_price'].replace(',', '.'))
 
-                    product.full_name = item['name']
+                    product.full_name = self.get_name(item)
                     product.source = 'allegro'
-                    product.url = item['url']
-                    product.price = price
-                    product.dealer_id = item['seller']['id']
+                    product.url = self.get_url(item)
+                    product.price = self.get_price(item)
+                    product.dealer_id = self.get_dealer_id(item)
                     product.dealer_name = ''
-                    product.free_shipping = item['shipping']['freeDelivery']
-                    product.new = item['parameters'][0]['values'][0] == 'Nowy'
+                    product.free_shipping = self.get_free_shipping_information(item)
+                    product.new = self.is_product_new(item)
                     product.product_name = name_and_suggested_price['name']
                     product.suggested_price = suggested_price
-                    product.price_too_low = price < suggested_price
-                    product.percentage_decrease = self.count_percentage_decrease(suggested_price, price)
+                    product.price_too_low = product.price < suggested_price
+                    product.percentage_decrease = self.count_percentage_decrease(suggested_price, product.price)
 
                     product_dict = product.create_product_dict()
                     products_list.append(product_dict)
@@ -96,6 +95,27 @@ class AllegroScraper:
                         IndexError):  # 'NoneType' for None objects, IndexError for item['attributes'][0]['values'][0] == 'Nowy'
                     pass
         return products_list
+
+    def product_is_buynow_option(self, product):
+        return 'buyNow' in product['sellingMode']
+
+    def is_product_new(self, product):
+        return product['parameters'][0]['values'][0] == 'Nowy'
+
+    def get_free_shipping_information(self, product):
+        return product['shipping']['freeDelivery']
+
+    def get_dealer_id(self, product):
+        return product['seller']['id']
+
+    def get_url(self, product):
+        return product['url']
+
+    def get_name(self, product):
+        return product['name']
+
+    def get_price(self, product):
+        return float(product['sellingMode']['buyNow']['price']['amount'])
 
     def detect_last_page(self, soup):
         try:
