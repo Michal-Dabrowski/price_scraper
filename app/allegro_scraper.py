@@ -10,6 +10,7 @@ from .models import detect_name_and_suggested_price
 
 class Product:
     def __init__(self):
+        self.type = '' #buynow or auction
         self.dealer_name = ''
         self.full_name = ''
         self.url = ''
@@ -69,38 +70,29 @@ class AllegroScraper:
         """
         products_list = list()
         for item in json_object:
-            if self.product_is_buynow_option(item):  #filters out 'auctions'
-                try:
-                    product = Product()
-                    name_and_suggested_price = detect_name_and_suggested_price(
-                        item['name'])  # generates None for discontinued products
-                    suggested_price = float(name_and_suggested_price['suggested_price'].replace(',', '.'))
-
-                    product.full_name = self.get_name(item)
-                    product.source = 'allegro'
-                    product.url = self.get_url(item)
-                    product.price = self.get_price(item)
-                    product.dealer_id = self.get_dealer_id(item)
-                    product.dealer_name = ''
-                    product.free_shipping = self.get_free_shipping_information(item)
-                    product.new = self.is_product_new(item)
-                    product.product_name = name_and_suggested_price['name']
-                    product.suggested_price = suggested_price
-                    product.price_too_low = product.price < suggested_price
-                    product.percentage_decrease = self.count_percentage_decrease(suggested_price, product.price)
-
-                    product_dict = product.create_product_dict()
-                    products_list.append(product_dict)
-                except (TypeError,
-                        IndexError):  # 'NoneType' for None objects, IndexError for item['attributes'][0]['values'][0] == 'Nowy'
-                    pass
+            try:
+                product = Product()
+                product.full_name = self.get_name(item)
+                product.source = 'allegro'
+                product.url = self.get_url(item)
+                product.price = self.get_price(item)
+                product.dealer_id = self.get_dealer_id(item)
+                product.free_shipping = self.get_free_shipping_information(item)
+                product.new = self.is_product_new(item)
+                product_dict = product.create_product_dict()
+                products_list.append(product_dict)
+            except (TypeError, IndexError):
+                pass
         return products_list
 
     def product_is_buynow_option(self, product):
         return 'buyNow' in product['sellingMode']
 
     def is_product_new(self, product):
-        return product['parameters'][0]['values'][0] == 'Nowy'
+        try:
+            return product['parameters'][0]['values'][0] == 'Nowy'
+        except IndexError:
+            return False
 
     def get_free_shipping_information(self, product):
         return product['shipping']['freeDelivery']
