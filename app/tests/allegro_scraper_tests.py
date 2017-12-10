@@ -22,21 +22,19 @@ class SearchSoupForJsonObjectTestCase(unittest.TestCase):
         """Is the JSON object returned by the search_soup_for_json_object method?"""
         scraper = AllegroScraper('')
         self.assertIsNotNone(scraper.search_soup_for_json_object(test_soup))
-"""
-    def test_if_json_has_promoted_items(self):
-        scraper = AllegroScraper('')
-        assert 'promoted' in scraper.search_soup_for_json_object(test_soup)
 
-    def test_if_json_has_regular_items(self):
-        scraper = AllegroScraper('')
-        assert 'regular' in scraper.search_soup_for_json_object(test_soup)
-
-    def test_if_json_has_sponsored_items(self):
-        scraper = AllegroScraper('')
-        assert 'sponsored' in scraper.search_soup_for_json_object(test_soup)
-"""
 class ProductIsBuynowOptionTestCase(unittest.TestCase):
 
     def test_buynow(self):
-        scraper = AllegroScraper('')
-        assert  scraper.get_type(test_product)
+        test_product_buynow = {'label': {'className': 'buy-now'}}
+        self.assertEqual(scraper.get_type(test_product_buynow), 'buynow')
+
+    def test_auction(self):
+        test_product_auction = {'label': {'className': 'auction'}}
+        self.assertEqual(scraper.get_type(test_product_auction), 'auction')
+
+class IsProductNewTestCase(unittest.TestCase):
+
+    def test_new(self):
+        product = {'parameters': [{'values': ['Nowy']}]}
+
