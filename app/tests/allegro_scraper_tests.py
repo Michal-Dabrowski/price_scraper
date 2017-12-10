@@ -36,5 +36,29 @@ class ProductIsBuynowOptionTestCase(unittest.TestCase):
 class IsProductNewTestCase(unittest.TestCase):
 
     def test_new(self):
-        product = {'parameters': [{'values': ['Nowy']}]}
+        product = {'attributes': [{'value': 'Nowy'}]}
+        self.assertTrue(scraper.is_product_new(product))
 
+    def test_used(self):
+        product = {'attributes': [{'value': 'Używany'}]}
+        self.assertFalse(scraper.is_product_new(product))
+
+class FreeShipping(unittest.TestCase):
+
+    def test_free_shipping(self):
+        product = {'deliveryInfo': [{'name': 'freeDelivery'}]}
+        self.assertTrue(scraper.free_shipping(product))
+
+    def test_not_free_shipping(self):
+        product = {'deliveryInfo': [{'name': 'noFreeShipping'}]}
+        self.assertFalse(scraper.free_shipping(product))
+
+    def test_missing_free_shipping(self):
+        product = {'noInfo': []}
+        self.assertFalse(scraper.free_shipping(product))
+
+class GetShippingCosts(unittest.TestCase):
+
+    def test_shipping_costs(self):
+        product = {'deliveryInfo': [{'price': {'amount': 10.5}}]}
+        self.assertEqual(scraper.get_shipping_costs(product), 10.5)
