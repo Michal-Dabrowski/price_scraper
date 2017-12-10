@@ -6,21 +6,23 @@ import re
 import time
 import requests
 from bs4 import BeautifulSoup
-from .models import detect_name_and_suggested_price
 
 class Product:
     def __init__(self):
-        self.dealer_name = ''
-        self.full_name = ''
-        self.url = ''
-        self.price = 0
-        self.dealer_id = ''
-        self.free_shipping = False
-        self.new = False
-        self.product_name = ''
-        self.suggested_price = 0
-        self.price_too_low = False
-        self.percentage_decrease = 0
+        self.type = None #buynow or auction
+        self.dealer_name = None
+        self.full_name = None
+        self.url = None
+        self.price = None
+        self.dealer_id = None
+        self.free_shipping = None
+        self.shipping_costs = None
+        self.new = None
+        self.product_name = None
+        self.archive = None
+        self.suggested_price = None
+        self.price_too_low = None
+        self.percentage_decrease = None
 
     def create_product_dict(self):
         return self.__dict__
@@ -41,23 +43,19 @@ class AllegroScraper:
     def search_soup_for_json_object(self, soup):
         """
         Allegro keeps products in a json object in
-        "window.__listing_ItemsStoreRawData" variable in <script> in their HTML code
+        "window.__listing_ItemsStoreState" variable in <script> in their HTML code
 
         :param soup
         :return json object containing products data
         """
         raw_data = soup.find_all('script')
-        p = re.compile('window.__listing_ItemsStoreRawData = (.*);')
+        p = re.compile('window.__listing_ItemsStoreState = (.*);')
         for element in raw_data:
             try:
-                if "window.__listing_ItemsStoreRawData =" in element.string:
+                if "window.__listing_ItemsStoreState =" in element.string:
                     m = p.search(element.string)
                     data = m.group(1)
-                    data = data.replace('(', '[')
-                    data = data.replace(')', ']')
-                    data = data.replace('new Date', '')
                     json_object = json.loads(data)
-                    json_object = json_object['items']['items']
                     return json_object
             except TypeError:  # some elements are NoneType
                 pass
@@ -68,34 +66,60 @@ class AllegroScraper:
         :return: returns a list of dictionaries containing products data
         """
         products_list = list()
-        for item in json_object:
-            if 'buyNow' in item['sellingMode']:  #filters out 'auctions'
-                try:
-                    product = Product()
-                    name_and_suggested_price = detect_name_and_suggested_price(
-                        item['name'])  # generates None for discontinued products
-                    price = float(item['sellingMode']['buyNow']['price']['amount'])
-                    suggested_price = float(name_and_suggested_price['suggested_price'].replace(',', '.'))
-
-                    product.full_name = item['name']
-                    product.source = 'allegro'
-                    product.url = item['url']
-                    product.price = price
-                    product.dealer_id = item['seller']['id']
-                    product.dealer_name = ''
-                    product.free_shipping = item['shipping']['freeDelivery']
-                    product.new = item['parameters'][0]['values'][0] == 'Nowy'
-                    product.product_name = name_and_suggested_price['name']
-                    product.suggested_price = suggested_price
-                    product.price_too_low = price < suggested_price
-                    product.percentage_decrease = self.count_percentage_decrease(suggested_price, price)
-
-                    product_dict = product.create_product_dict()
-                    products_list.append(product_dict)
-                except (TypeError,
-                        IndexError):  # 'NoneType' for None objects, IndexError for item['attributes'][0]['values'][0] == 'Nowy'
-                    pass
+        for item in json_object['items']:
+            try:
+                product = Product()
+                product.type = self.get_type(item)
+                product.full_name = self.get_name(item)
+                product.source = 'allegro'
+                product.url = self.get_url(item)
+                product.price = self.get_price(item)
+                product.dealer_id = self.get_dealer_id(item)
+                product.free_shipping = self.free_shipping(item)
+                product.shipping_costs = self.get_shipping_costs(item)
+                product.new = self.is_product_new(item)
+                product.archive = self.is_archived(item)
+                product_dict = product.create_product_dict()
+                products_list.append(product_dict)
+            except (TypeError, IndexError):
+                pass
         return products_list
+
+    def get_type(self, product):
+        if product['label']['className'] == 'buy-now':
+            return 'buynow'
+        else:
+            return 'auction'
+
+    def is_product_new(self, product):
+        return product['attributes'][0]['value'] == 'Nowy'
+
+    def free_shipping(self, product):
+        try:
+            return product['deliveryInfo'][0]['name'] == 'freeDelivery'
+        except KeyError:
+            return False
+
+    def get_shipping_costs(self, product):
+        try:
+            return product['deliveryInfo'][0]['price']['amount']
+        except KeyError:
+            return None
+
+    def get_dealer_id(self, product):
+        return product['userInfo']['sellerId']
+
+    def get_url(self, product):
+        return product['url']
+
+    def is_archived(self, product):
+        return product['isEnded']
+
+    def get_name(self, product):
+        return product['title']['text']
+
+    def get_price(self, product):
+        return float(product['price']['normal']['amount'])
 
     def detect_last_page(self, soup):
         try:
@@ -112,13 +136,6 @@ class AllegroScraper:
         self.current_progress_bar_percent_value = percent
         print("Scraping page {} from {}. Progress: {}%".format(self.current_page, self.last_page, percent))
 
-    @staticmethod
-    def count_percentage_decrease(regular_price, dealer_price):
-        percent = dealer_price / regular_price
-        percent = percent * 100
-        percent = percent - 100
-        return round(percent, 2)
-
     def generator(self):
         with requests.Session() as s:
             while self.current_page <= self.last_page:
@@ -130,12 +147,15 @@ class AllegroScraper:
                 self.current_page_soup = BeautifulSoup(response.content, "html.parser")
                 self.last_page = self.detect_last_page(self.current_page_soup)
                 json_object = self.search_soup_for_json_object(self.current_page_soup)
-                self.products_list += self.get_products_from_json_object(json_object['regular'])
-                self.products_list += self.get_products_from_json_object(json_object['promoted'])
+                for group in json_object['itemsGroups']:
+                    self.products_list += self.get_products_from_json_object(group)
                 self.print_feedback()
                 self.current_page += 1
                 yield str(self.current_progress_bar_percent_value)
                 time.sleep(random.uniform(15, 30))
 
 if __name__ == '__main__':
-    scraper = AllegroScraper()
+    scraper = AllegroScraper('playstation 4')
+    generator = scraper.generator()
+    for step in generator:
+        print(step)
