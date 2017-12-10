@@ -193,3 +193,9 @@ def detect_name_and_suggested_price(name):
         if match:
             return {'name': row.product_name, 'suggested_price': row.suggested_price}
     return None
+
+def count_percentage_decrease(regular_price, dealer_price):
+    percent = dealer_price / regular_price
+    percent = percent * 100
+    percent = percent - 100
+    return round(percent, 2)
