@@ -6,6 +6,7 @@ import re
 import time
 import requests
 from bs4 import BeautifulSoup
+from .models import detect_name_and_suggested_price, count_percentage_decrease
 
 class Product:
     def __init__(self):
@@ -86,10 +87,7 @@ class AllegroScraper:
         return products_list
 
     def get_type(self, product):
-        if product['label']['className'] == 'buy-now':
-            return 'buynow'
-        else:
-            return 'auction'
+        return product['type']
 
     def is_product_new(self, product):
         return product['attributes'][0]['value'] == 'Nowy'
@@ -116,7 +114,7 @@ class AllegroScraper:
         return product['isEnded']
 
     def get_name(self, product):
-        return product['title']['text']
+        return str(product['title']['text'])
 
     def get_price(self, product):
         return float(product['price']['normal']['amount'])
@@ -136,6 +134,17 @@ class AllegroScraper:
         self.current_progress_bar_percent_value = percent
         print("Scraping page {} from {}. Progress: {}%".format(self.current_page, self.last_page, percent))
 
+    def update_names_and_suggested_prices(self):
+        for product in self.products_list:
+            try:
+                name_and_price = detect_name_and_suggested_price(product['full_name'])
+                product['product_name'] = name_and_price['name']
+                product['suggested_price'] = name_and_price['suggested_price']
+                product['percentage_decrease'] = count_percentage_decrease(product['suggested_price'], product['price'])
+                product['price_too_low'] = product['price'] < product['suggested_price']
+            except TypeError:
+                pass
+
     def generator(self):
         with requests.Session() as s:
             while self.current_page <= self.last_page:
@@ -152,7 +161,8 @@ class AllegroScraper:
                 self.print_feedback()
                 self.current_page += 1
                 yield str(self.current_progress_bar_percent_value)
-                time.sleep(random.uniform(15, 30))
+                time.sleep(random.uniform(5, 15))
+        self.update_names_and_suggested_prices()
 
 if __name__ == '__main__':
     scraper = AllegroScraper('playstation 4')
