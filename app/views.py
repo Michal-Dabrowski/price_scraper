@@ -9,7 +9,7 @@ from .allegro_scraper import AllegroScraper
 from .ceneo_scraper import CeneoScraper, CeneoUrlScraper
 from .pagination_object import Pagination
 from sqlalchemy import func
-from .models import update_product_statistics, update_dealer_statistics, add_dealer, detect_name_and_suggested_price
+from .models import update_product_statistics, update_dealer_statistics, add_dealer, detect_name_and_suggested_price, count_percentage_decrease
 import json
 from .forms import SearchForm, LoginForm, RegisterForm
 from flask_login import login_user, logout_user, current_user, login_required
@@ -269,7 +269,7 @@ def update_product_database_from_object(object):
     db.session.commit()
 
     for item in object:
-        if item['suggested_price'] != 0:  # we don't want empty products
+        if item['product_name'] is not None:  # we don't want empty products
 
             product = Product.query.filter_by(source=source).filter_by(dealer_id=item['dealer_id']).filter_by(full_name=item['full_name']).first()
             if product is None:

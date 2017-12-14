@@ -6,7 +6,7 @@ import re
 import time
 import random
 from app.allegro_scraper import Product, AllegroScraper
-from .models import detect_name_and_suggested_price
+from .models import detect_name_and_suggested_price, count_percentage_decrease
 
 class CeneoUrlScraper:
 
@@ -176,10 +176,10 @@ class CeneoScraper:
                     product.url = 'http://www.ceneo.pl' + url
                     product.new = True
                     name_and_suggested_price = detect_name_and_suggested_price(product.full_name)  # generates None for discontinued products
-                    product.suggested_price = float(name_and_suggested_price['suggested_price'].replace(',', '.'))
+                    product.suggested_price = name_and_suggested_price['suggested_price']
                     product.product_name = name_and_suggested_price['name']
                     product.price_too_low = product.price < product.suggested_price
-                    product.percentage_decrease = AllegroScraper.count_percentage_decrease(product.suggested_price,
+                    product.percentage_decrease = count_percentage_decrease(product.suggested_price,
                                                                                                product.price)
                     products_list.append(product.__dict__)
                 except TypeError:  # 'NoneType' object is not subscriptable
