@@ -28,11 +28,11 @@ class ProductIsBuynowOptionTestCase(unittest.TestCase):
         self.scraper = AllegroScraper('')
 
     def test_buynow(self):
-        test_product_buynow = {'label': {'className': 'buy-now'}}
-        self.assertEqual(self.scraper.get_type(test_product_buynow), 'buynow')
+        test_product_buynow = {'type': 'buyNow'}
+        self.assertEqual(self.scraper.get_type(test_product_buynow), 'buyNow')
 
     def test_auction(self):
-        test_product_auction = {'label': {'className': 'auction'}}
+        test_product_auction = {'type': 'auction'}
         self.assertEqual(self.scraper.get_type(test_product_auction), 'auction')
 
 class IsProductNewTestCase(unittest.TestCase):
