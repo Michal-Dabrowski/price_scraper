@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+from unittest.mock import patch, Mock, MagicMock
 import json
 from app.allegro_scraper import AllegroScraper, Product
 from bs4 import BeautifulSoup
@@ -131,6 +132,27 @@ class DetectLastPageTestCase(unittest.TestCase):
     def setUp(self):
         self.scraper = AllegroScraper('')
 
-    def test_detect_last_page(self):
-        html = '<li class="quantity"><a data-page="487" href="#" rel="last">487</a></li>'
-        self.assertEqual(self.scraper.detect_last_page(html), 487)
+    @patch('app.allegro_scraper.BeautifulSoup')
+    def test_detect_last_page(self, mock_soup):
+        mock_tag = MagicMock()
+        mock_tag.text = '<li class="quantity"><a href="#" rel="last">487</a></li>'
+        mock_soup.find.return_value = mock_tag
+        self.assertEqual(self.scraper.detect_last_page(mock_soup), 487)
+
+    @patch('app.allegro_scraper.BeautifulSoup')
+    def test_no_last_page(self, mock_soup):
+        mock_tag = MagicMock()
+        mock_tag.text = '<li class="quantity"><a href="#" rel="last"></a></li>'
+        mock_soup.find.return_value = mock_tag
+        self.assertEqual(self.scraper.detect_last_page(mock_soup), 20)
+
+class PrintFeedbackTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.scraper = AllegroScraper('')
+
+    def test_print_feedback_50_percent(self):
+        self.scraper.last_page = 20
+        self.scraper.current_page = 10
+        self.scraper.print_feedback()
+        self.assertEqual(self.scraper.current_progress_bar_percent_value, 50)
