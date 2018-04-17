@@ -161,7 +161,7 @@ class AllegroScraper:
                 self.print_feedback()
                 self.current_page += 1
                 yield str(self.current_progress_bar_percent_value)
-                time.sleep(random.uniform(5, 15))
+                time.sleep(random.uniform(2, 5))
         self.update_names_and_suggested_prices()
 
 if __name__ == '__main__':
