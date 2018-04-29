@@ -3,28 +3,18 @@ import json
 # from config import BRAND_NAME
 
 
-class Product:
-    def __init__(self):
-        self.type = None #buynow or auction
-        self.dealer_name = None
-        self.full_name = None
-        self.url = None
-        self.price = None
-        self.dealer_id = None
-        self.free_shipping = None
-        self.shipping_costs = None
-        self.new = None
-        self.product_name = None
-        self.archive = None
-        self.suggested_price = None
-        self.price_too_low = None
-        self.percentage_decrease = None
-
 class AllegroScraper(scrapy.Spider):
     name = 'AllegroScraper'
     start_urls = [
         'https://allegro.pl/listing?string={}&order=m&bmatch=base-relevance-floki-5-nga-hc-ele-1-2-0901&p=0'.format(BRAND_NAME)
     ]
+    custom_settings = {
+        'ROBOTSTXT_OBEY': False,
+        'USER_AGENT': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:52.0) Gecko/20100101 Firefox/52.0',
+        'DOWNLOAD_DELAY': 5.0,
+        'CONCURRENT_REQUESTS_PER_DOMAIN': 1
+
+    }
 
     def parse(self, response):
         """
