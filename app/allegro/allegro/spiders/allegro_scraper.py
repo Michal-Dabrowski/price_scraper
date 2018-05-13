@@ -1,6 +1,6 @@
 import scrapy
 import json
-# from config import BRAND_NAME
+from config import BRAND_NAME
 
 
 class AllegroScraper(scrapy.Spider):
