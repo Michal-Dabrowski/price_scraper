@@ -2,6 +2,7 @@ import scrapy
 import json
 # from config import BRAND_NAME
 
+BRAND_NAME = 'reloop'
 
 class AllegroScraper(scrapy.Spider):
     name = 'AllegroScraper'
@@ -46,26 +47,29 @@ class AllegroScraper(scrapy.Spider):
                     'archive': self.is_archived(item)
                 }
 
-        # for page in range(number_of_pages + 1):
-        #     next_page = 'https://allegro.pl/listing?string={}&order=m&bmatch=base-relevance-floki-5-nga-hc-ele-1-2-0901&p={}'.format(BRAND_NAME, page)
-        #     yield response.follow(next_page, self.parse)
+        for page in range(number_of_pages + 1):
+            next_page = 'https://allegro.pl/listing?string={}&order=m&bmatch=base-relevance-floki-5-nga-hc-ele-1-2-0901&p={}'.format(BRAND_NAME, page)
+            yield response.follow(next_page, self.parse)
 
     def get_type(self, product):
         return product['type']
 
     def is_product_new(self, product):
-        return product['attributes'][0]['value'] == 'Nowy'
+        try:
+            return product['attributes'][0]['value'] == 'Nowy'
+        except (KeyError, IndexError):
+            return False
 
     def free_shipping(self, product):
         try:
             return product['deliveryInfo'][0]['name'] == 'freeDelivery'
-        except KeyError:
+        except (KeyError, IndexError):
             return False
 
     def get_shipping_costs(self, product):
         try:
             return product['deliveryInfo'][0]['price']['amount']
-        except KeyError:
+        except (KeyError, IndexError):
             return None
 
     def get_dealer_id(self, product):
