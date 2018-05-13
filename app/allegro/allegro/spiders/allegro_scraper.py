@@ -2,7 +2,6 @@ import scrapy
 import json
 # from config import BRAND_NAME
 
-BRAND_NAME = 'reloop'
 
 class AllegroScraper(scrapy.Spider):
     name = 'AllegroScraper'
