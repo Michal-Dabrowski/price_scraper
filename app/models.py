@@ -117,9 +117,9 @@ def populate_table_from_file(filename):
     File should be located in static\files.
     Names should be column 1, prices column 5 (index starts from 0).
     """
-    file = pd.read_csv(UPLOAD_FOLDER + '\\' + filename, sep=',', header=None)
-    names_raw = file[1].tolist()
-    suggested_prices = file[5].tolist()
+    file = pd.read_csv(UPLOAD_FOLDER + filename, sep=',', header=None)
+    names_raw = file[2].tolist()
+    suggested_prices = file[9].tolist()
     replace_pairs = [("\\", ""), ('-', '-?\s?'), ('"', '"?'), (' ', '\s?')]
     for index, name in enumerate(names_raw):
         name = name.lower()
