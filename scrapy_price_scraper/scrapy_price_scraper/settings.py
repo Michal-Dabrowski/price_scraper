@@ -88,3 +88,7 @@ CONCURRENT_REQUESTS_PER_DOMAIN = 1
 #HTTPCACHE_DIR = 'httpcache'
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
+
+ITEM_PIPELINES = {
+    'scrapy_price_scraper.pipelines.AllegroPipeline': 300,
+}
