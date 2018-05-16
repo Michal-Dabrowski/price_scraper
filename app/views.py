@@ -5,7 +5,6 @@ from app import app, db, lm
 from .models import Product, Dealer, DealerStatistics, ProductStatistics, User
 from datetime import datetime
 from config import DEALERS_PER_PAGE, UPLOAD_FOLDER, BRAND_NAME
-from .ceneo_scraper import CeneoScraper, CeneoUrlScraper
 from .pagination_object import Pagination
 from sqlalchemy import func
 from .models import update_product_statistics, update_dealer_statistics, add_dealer, detect_name_and_suggested_price, count_percentage_decrease
@@ -13,9 +12,6 @@ import json
 from .forms import SearchForm, LoginForm, RegisterForm
 from flask_login import login_user, logout_user, current_user, login_required
 from passlib.hash import sha256_crypt
-import scrapy
-from scrapy.crawler import CrawlerProcess, CrawlerRunner
-from .allegro.allegro.spiders.allegro_scraper import AllegroScraper
 from subprocess import call, Popen, PIPE
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -88,7 +84,7 @@ def scrap(source):
     newest_product = Product.query.filter_by(source=source).order_by(Product.timestamp_full.desc()).first()
     if newest_product is None or newest_product.timestamp_short != today:
         if source == 'allegro':
-            Popen(['scrapy', 'crawl', 'allegro'], cwd='app/allegro')
+            Popen(['scrapy', 'crawl', 'allegro'], cwd='scrapy_price_scraper')
     return render_template('scraper.html',
                            source=source)
 

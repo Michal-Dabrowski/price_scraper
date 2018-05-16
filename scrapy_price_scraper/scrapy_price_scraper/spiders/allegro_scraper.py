@@ -1,6 +1,11 @@
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
+
 import scrapy
 import json
-from spiders_config import BRAND_NAME
+from config import BRAND_NAME
+
 
 class AllegroScraper(scrapy.Spider):
     name = 'allegro'
