@@ -2,9 +2,8 @@ import scrapy
 import json
 from config import BRAND_NAME
 
-
 class AllegroScraper(scrapy.Spider):
-    name = 'AllegroScraper'
+    name = 'allegro'
     start_urls = [
         'https://allegro.pl/listing?string={}&order=m&bmatch=base-relevance-floki-5-nga-hc-ele-1-2-0901&p=0'.format(BRAND_NAME)
     ]
@@ -13,7 +12,6 @@ class AllegroScraper(scrapy.Spider):
         'USER_AGENT': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:52.0) Gecko/20100101 Firefox/52.0',
         'DOWNLOAD_DELAY': 5.0,
         'CONCURRENT_REQUESTS_PER_DOMAIN': 1
-
     }
 
     def parse(self, response):
