@@ -1,6 +1,6 @@
 import scrapy
 import json
-from config import BRAND_NAME
+from spiders_config import BRAND_NAME
 
 class AllegroScraper(scrapy.Spider):
     name = 'allegro'
