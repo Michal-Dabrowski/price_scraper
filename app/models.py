@@ -12,7 +12,7 @@ import re
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     login = db.Column(db.String(64), unique=True)
-    password = db.Column(db.String(64))
+    password = db.Column(db.String)
     email = db.Column(db.String(64), unique=True)
     active = db.Column(db.Boolean)
 
