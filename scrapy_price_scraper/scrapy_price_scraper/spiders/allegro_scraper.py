@@ -3,8 +3,11 @@ import os
 import scrapy
 import json
 
+from scrapy import signals
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 from config import BRAND_NAME
+from app.views import update_statistics
 
 
 class AllegroScraper(scrapy.Spider):
@@ -18,6 +21,15 @@ class AllegroScraper(scrapy.Spider):
         'DOWNLOAD_DELAY': 5.0,
         'CONCURRENT_REQUESTS_PER_DOMAIN': 1
     }
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(AllegroScraper, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
+    def spider_closed(self, spider):
+        update_statistics('allegro')
 
     def parse(self, response):
         """

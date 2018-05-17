@@ -80,11 +80,20 @@ def old_analysis(source='allegro', page=1):
 @app.route('/scrap/<source>', methods=['GET', 'POST'])
 @login_required
 def scrap(source):
+
     today = datetime.utcnow().strftime('%Y-%m-%d')
     newest_product = Product.query.filter_by(source=source).order_by(Product.timestamp_full.desc()).first()
+
+    old_products = db.session.query(Product).filter_by(source=source).all()
+    for product in old_products:
+        product.archive = True
+        db.session.add(product)
+    db.session.commit()
+
     if newest_product is None or newest_product.timestamp_short != today:
         if source == 'allegro':
             Popen(['scrapy', 'crawl', 'allegro'], cwd='scrapy_price_scraper')
+
     return render_template('scraper.html',
                            source=source)
 
