@@ -90,7 +90,7 @@ class ProductStatistics(db.Model):
     timestamp = db.Column(db.DateTime)
 
 
-def add_dealer(dealer_id, source, name):
+def add_dealer(dealer_id, source, name=''):
     d = Dealer.query.filter_by(dealer_id=dealer_id).first()
     if d is None:
         if source == 'allegro':

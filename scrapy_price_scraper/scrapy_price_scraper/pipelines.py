@@ -24,7 +24,7 @@ class AllegroPipeline(object):
             full_name=item['full_name']).first()
 
         if product is None:
-            add_dealer(item['dealer_id'], source, item['dealer_name'])
+            add_dealer(item['dealer_id'], source)
             product = Product(dealer_id=item['dealer_id'],
                               source=source,
                               full_name=item['full_name'],
