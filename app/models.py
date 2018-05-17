@@ -90,7 +90,7 @@ class ProductStatistics(db.Model):
     timestamp = db.Column(db.DateTime)
 
 
-def add_dealer(dealer_id, source, name):
+def add_dealer(dealer_id, source, name=''):
     d = Dealer.query.filter_by(dealer_id=dealer_id).first()
     if d is None:
         if source == 'allegro':
@@ -117,10 +117,12 @@ def populate_table_from_file(filename):
     File should be located in static\files.
     Names should be column 1, prices column 5 (index starts from 0).
     """
-    file = pd.read_csv(UPLOAD_FOLDER + '\\' + filename, sep=',', header=None)
-    names_raw = file[1].tolist()
-    suggested_prices = file[5].tolist()
-    replace_pairs = [("\\", ""), ('-', '-?\s?'), ('"', '"?'), (' ', '\s?')]
+    file = pd.read_csv(UPLOAD_FOLDER + filename, sep=',', header=None)
+    names_raw = file[2].tolist()
+    names_raw = names_raw[1:-1]
+    suggested_prices = file[9].tolist()
+    suggested_prices = suggested_prices[1:-1]
+    replace_pairs = [("\\", ""), ('-', '-?\s?'), ('"', '"?'), (' ', '\s?'), ('/', '\/')]
     for index, name in enumerate(names_raw):
         name = name.lower()
         name = name.strip()

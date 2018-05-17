@@ -31,9 +31,9 @@
         </div>
         <button type="submit" class="btn btn-default">Szukaj produktu</button>
       </form>
-      <div class="btn-group">
-        <button class="btn btn-default navbar-btn" id="button">Przeprowadź nową analizę</button>
-      </div>
+        <form class="navbar-form navbar-left" action="/scrap/{{source}}" method="post" name="scrap">
+            <button type="submit" class="btn btn-default">Przeprowadź nową analizę</button>
+        </form>
       <ul class="nav navbar-nav navbar-right">
         <li><a href="{{url_for('logout')}}">Wyloguj</a></li>
       </ul>
