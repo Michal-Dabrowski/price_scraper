@@ -20,6 +20,9 @@ from app import models, views
 from .models import User, SuggestedPrices
 
 class MyModelView(ModelView):
+
+    column_display_pk = True
+
     def is_accessible(self):
         return current_user.is_authenticated
 
